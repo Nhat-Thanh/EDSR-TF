@@ -19,7 +19,6 @@ class dataset:
             return
         data = []
         labels = []
-        step = hr_crop_size - 1
 
         subset_dir = os.path.join(self.dataset_dir, self.subset)
         ls_images = sorted_list(subset_dir)
@@ -27,25 +26,19 @@ class dataset:
             print(image_path)
             hr_image = read_image(image_path)
 
-            h = hr_image.shape[0]
-            w = hr_image.shape[1]
-            for x in np.arange(start=0, stop=h-hr_crop_size, step=step):
-                for y in np.arange(start=0, stop=w-hr_crop_size, step=step):
-                    subim_label = hr_image[x : x + hr_crop_size, y : y + hr_crop_size]
-                    if transform:
-                        subim_label = random_transform(subim_label)
+            for _ in range(100):
+                subim_label = random_crop(hr_image, hr_crop_size, hr_crop_size)
+                if transform:
+                    subim_label = random_transform(subim_label)
 
-                    subim_data = gaussian_blur(subim_label, sigma=0.7)
-                    subim_data = resize_bicubic(subim_data, lr_crop_size, lr_crop_size)
+                subim_data = gaussian_blur(subim_label, sigma=0.6)
+                subim_data = resize_bicubic(subim_data, lr_crop_size, lr_crop_size)
 
-                    # subim_label = rgb2ycbcr(subim_label)
-                    # subim_data = rgb2ycbcr(subim_data)
- 
-                    subim_label = norm01(subim_label.numpy())
-                    subim_data = norm01(subim_data.numpy())
+                subim_label = norm01(subim_label.numpy())
+                subim_data = norm01(subim_data.numpy())
 
-                    labels.append(subim_label)
-                    data.append(subim_data)
+                labels.append(subim_label)
+                data.append(subim_data)
 
         data = np.array(data)
         labels = np.array(labels)
