@@ -39,7 +39,6 @@ def main():
     write_image("bicubic.png", bicubic_image)
 
     lr_image = gaussian_blur(lr_image, sigma=sigma)
-    # lr_image = rgb2ycbcr(lr_image)
     lr_image = norm01(lr_image)
     lr_image = tf.expand_dims(lr_image, axis=0)
 
@@ -49,7 +48,6 @@ def main():
 
     sr_image = denorm01(sr_image)
     sr_image = tf.cast(sr_image, tf.uint8)
-    sr_image = ycbcr2rgb(sr_image)
     write_image("sr.png", sr_image)
 
 if __name__ == "__main__":

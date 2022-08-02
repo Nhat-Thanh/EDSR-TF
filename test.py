@@ -34,16 +34,13 @@ def main():
     model.load_weights(ckpt_path)
 
     ls_data = sorted_list("dataset/test/x{}/data".format(scale))
-    ls_labels = sorted_list(f"dataset/test/x{}/labels".format(scale))
+    ls_labels = sorted_list("dataset/test/x{}/labels".format(scale))
 
     sum_psnr = 0
     for i in range(0, len(ls_data)):
         lr_image = read_image(ls_data[i])
         lr_image = gaussian_blur(lr_image, sigma=sigma)
         hr_image = read_image(ls_labels[i])
-
-        # lr_image = rgb2ycbcr(lr_image)
-        # hr_image = rgb2ycbcr(hr_image)
 
         lr_image = norm01(lr_image)
         hr_image = norm01(hr_image)

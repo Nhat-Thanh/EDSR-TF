@@ -2,7 +2,7 @@ import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3'
 
 from tensorflow.keras.losses import MeanSquaredError, MeanAbsoluteError
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam, schedules
 from utils.dataset import dataset
 from utils.common import PSNR
 from model import EDSR
@@ -16,6 +16,22 @@ parser.add_argument("--save-every",     type=int, default=1000,   help='-')
 parser.add_argument("--save-best-only", type=int, default=0,      help='-')
 parser.add_argument("--save-log",       type=int, default=0,      help='-')
 parser.add_argument("--ckpt-dir",       type=str, default="",     help='-')
+
+
+# -----------------------------------------------------------
+# My learning rate schedule
+# -----------------------------------------------------------
+
+class MyLRSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
+    def __init__(self, initial_learning_rate : float, decay_steps : int, decay_rate : float):
+        self.learning_rate = initial_learning_rate
+        self.decay_rate = decay_rate
+        self.decay_steps = decay_steps
+
+    def __call__(self, step : int):
+        if (step % self.decay_steps == 0):
+            self.learning_rate *= self.decay_rate
+        return self.learning_rate
 
 
 # -----------------------------------------------------------
@@ -62,11 +78,19 @@ valid_set.load_data()
 
 def main():
     model = EDSR(scale)
-    model.setup(optimizer=Adam(learning_rate=1e-4, beta_1=0.9, beta_2=0.999, epsilon=1e-8),
-                loss=MeanAbsoluteError(), model_path=model_path, metric=PSNR)
+
+    lr_schedule = MyLRSchedule(initial_learning_rate=1e-4,
+                               decay_steps=200000, 
+                               decay_rate=0.5)
+    optimizer = Adam(learning_rate=lr_schedule, beta_1=0.9, beta_2=0.999, epsilon=1e-8)
+
+    model.setup(optimizer=optimizer, loss=MeanAbsoluteError(), 
+                model_path=model_path, metric=PSNR)
 
     model.load_checkpoint(ckpt_dir)
-    model.train(train_set, valid_set, batch_size, steps, save_every, save_best_only, save_log, ckpt_dir)
+
+    model.train(train_set, valid_set, batch_size, steps, 
+                save_every, save_best_only, save_log, ckpt_dir)
 
 if __name__ == "__main__":
     main()
