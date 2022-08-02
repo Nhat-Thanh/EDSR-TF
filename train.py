@@ -23,14 +23,16 @@ parser.add_argument("--ckpt-dir",       type=str, default="",     help='-')
 # -----------------------------------------------------------
 
 class MyLRSchedule(schedules.LearningRateSchedule):
-    def __init__(self, initial_learning_rate : float, decay_steps : int, decay_rate : float):
+    def __init__(self, initial_learning_rate, decay_steps, decay_rate):
         self.learning_rate = initial_learning_rate
         self.decay_rate = decay_rate
         self.decay_steps = decay_steps
 
-    def __call__(self, step : int):
-        if (step % self.decay_steps == 0):
-            self.learning_rate *= self.decay_rate
+    def __call__(self, step):
+        # if step %% decay_steps == 0 then learning_rate *= decay_rate^1 else learning_rate *= decay_rate^0
+        dict_exp_factor = { 0 : 1 }
+        key = step % self.decay_steps;
+        self.learning_rate *= self.decay_rate ** dict_exp_factor.get(key.ref(), 0)
         return self.learning_rate
 
 
