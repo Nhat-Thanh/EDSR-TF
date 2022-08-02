@@ -26,7 +26,7 @@ class dataset:
             print(image_path)
             hr_image = read_image(image_path)
 
-            for _ in range(100):
+            for _ in range(50):
                 subim_label = random_crop(hr_image, hr_crop_size, hr_crop_size)
                 if transform:
                     subim_label = random_transform(subim_label)
