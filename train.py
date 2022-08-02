@@ -22,7 +22,7 @@ parser.add_argument("--ckpt-dir",       type=str, default="",     help='-')
 # My learning rate schedule
 # -----------------------------------------------------------
 
-class MyLRSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
+class MyLRSchedule(schedules.LearningRateSchedule):
     def __init__(self, initial_learning_rate : float, decay_steps : int, decay_rate : float):
         self.learning_rate = initial_learning_rate
         self.decay_rate = decay_rate
@@ -77,13 +77,16 @@ valid_set.load_data()
 # -----------------------------------------------------------
 
 def main():
-    model = EDSR(scale)
+    os.makedirs(os.path.join(dataset_dir, "train"), exist_ok=True)
+    os.makedirs(os.path.join(dataset_dir, "test"), exist_ok=True)
+    os.makedirs(os.path.join(dataset_dir, "validation"), exist_ok=True)
 
     lr_schedule = MyLRSchedule(initial_learning_rate=1e-4,
                                decay_steps=200000, 
                                decay_rate=0.5)
     optimizer = Adam(learning_rate=lr_schedule, beta_1=0.9, beta_2=0.999, epsilon=1e-8)
 
+    model = EDSR(scale)
     model.setup(optimizer=optimizer, loss=MeanAbsoluteError(), 
                 model_path=model_path, metric=PSNR)
 
