@@ -68,7 +68,9 @@ def sorted_list(dir):
         ls[i] = os.path.join(dir, ls[i])
     return ls
 
-def resize_bicubic(src, h, w):
+def resize_bicubic(src, shape):
+    h = shape[0]
+    w = shape[1]
     image = tf.image.resize(src, [h, w], method=tf.image.ResizeMethod.BICUBIC)
     image = tf.clip_by_value(image, 0, 255)
     image = tf.cast(image, tf.uint8)
@@ -98,13 +100,13 @@ def gaussian_blur(src, kernel_size=3, sigma=0.5):
 def upscale(src, scale):
     h = int(src.shape[0] * scale)
     w = int(src.shape[1] * scale)
-    image = resize_bicubic(src, h, w)
+    image = resize_bicubic(src, (h, w))
     return image
 
 def downscale(src, scale):
     h = int(src.shape[0] / scale)
     w = int(src.shape[1] / scale)
-    image = resize_bicubic(src, h, w)
+    image = resize_bicubic(src, (h, w))
     return image
 
 def norm01(src):
@@ -122,8 +124,8 @@ def PSNR(y_true, y_pred, max_val=1):
     MSE = tf.reduce_mean(tf.square(y_true - y_pred))
     return 10 * tf.math.log(max_val * max_val / MSE) / tf.math.log(10.0)
 
-def random_crop(image, h, w, c=3):
-    crop = tf.image.random_crop(image, [h, w, c])
+def random_crop(image, shape):
+    crop = tf.image.random_crop(image, shape)
     return crop
 
 def random_transform(src):

@@ -1,7 +1,9 @@
 import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3'
 
+from utils.dataset import DatasetSingleImage
 from utils.common import *
+from utils.my_functions import MyPreprocess
 from model import EDSR 
 import argparse
 
@@ -33,24 +35,19 @@ def main():
     model = EDSR(scale)
     model.load_weights(ckpt_path)
 
-    ls_data = sorted_list("dataset/test/x{}/data".format(scale))
-    ls_labels = sorted_list("dataset/test/x{}/labels".format(scale))
+    data_dir = "dataset/test/x{}/data".format(scale)
+    label_dir = "dataset/test/x{}/labels".format(scale)
+    test_dataset = DatasetSingleImage(data_dir, label_dir)
+    test_dataset.load_data(preprocess=MyPreprocess)
 
     sum_psnr = 0
-    for i in range(0, len(ls_data)):
-        lr_image = read_image(ls_data[i])
-        lr_image = gaussian_blur(lr_image, sigma=sigma)
-        hr_image = read_image(ls_labels[i])
-
-        lr_image = norm01(lr_image)
-        hr_image = norm01(hr_image)
-
-        lr_image = tf.expand_dims(lr_image, axis=0)
-        sr_image = model.predict(lr_image)[0]
-
+    isEnd = False
+    while isEnd == False:
+        lr_image, hr_image, isEnd = test_dataset.get_images()
+        sr_image = model.predict(lr_image)
         sum_psnr += PSNR(hr_image, sr_image, max_val=1).numpy()
 
-    print(sum_psnr / len(ls_data))
+    print(sum_psnr / test_dataset.length())
 
 if __name__ == "__main__":
     main()

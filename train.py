@@ -1,10 +1,11 @@
 import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3'
 
-from tensorflow.keras.losses import MeanSquaredError, MeanAbsoluteError
-from tensorflow.keras.optimizers import Adam, schedules
-from utils.dataset import dataset
+from tensorflow.keras.losses import MeanAbsoluteError
+from tensorflow.keras.optimizers import Adam
+from utils.dataset import DatasetRandomCrop, DatasetSubsample
 from utils.common import PSNR
+from utils.my_functions import MyPreprocess, MyResizeMethod, MyLRSchedule
 from model import EDSR
 import argparse
 
@@ -16,24 +17,6 @@ parser.add_argument("--save-every",     type=int, default=1000,   help='-')
 parser.add_argument("--save-best-only", type=int, default=0,      help='-')
 parser.add_argument("--save-log",       type=int, default=0,      help='-')
 parser.add_argument("--ckpt-dir",       type=str, default="",     help='-')
-
-
-# -----------------------------------------------------------
-# My learning rate schedule
-# -----------------------------------------------------------
-
-class MyLRSchedule(schedules.LearningRateSchedule):
-    def __init__(self, initial_learning_rate, decay_steps, decay_rate):
-        self.learning_rate = initial_learning_rate
-        self.decay_rate = decay_rate
-        self.decay_steps = decay_steps
-
-    def __call__(self, step):
-        # if step %% decay_steps == 0 then learning_rate *= decay_rate^1 else learning_rate *= decay_rate^0
-        dict_exp_factor = { 0 : 1 }
-        key = step % self.decay_steps;
-        self.learning_rate *= self.decay_rate ** dict_exp_factor.get(key.ref(), 0)
-        return self.learning_rate
 
 
 # -----------------------------------------------------------
@@ -61,17 +44,17 @@ model_path = os.path.join(ckpt_dir, "EDSR-x{}.h5".format(scale))
 #  Init datasets
 # -----------------------------------------------------------
 
-dataset_dir = "dataset"
-hr_crop_size = 48
-lr_crop_size = hr_crop_size // scale
+root_dataset_dir = "dataset"
+train_dataset_dir = os.path.join(root_dataset_dir, "train")
+crop_size = 48
+hr_shape = (crop_size, crop_size, 3)
+lr_shape = (crop_size // scale, crop_size // scale, 3)
 
-train_set = dataset(dataset_dir, "train")
-train_set.generate(lr_crop_size, hr_crop_size)
-train_set.load_data()
+train_set = DatasetRandomCrop(train_dataset_dir)
+train_set.load_data(lr_shape, hr_shape, resize=MyResizeMethod, preprocess=MyPreprocess)
 
-valid_set = dataset(dataset_dir, "validation")
-valid_set.generate(lr_crop_size, hr_crop_size)
-valid_set.load_data()
+valid_set = DatasetSubsample(root_dataset_dir, "validation", limit_per_image=50)
+valid_set.load_data(lr_shape, hr_shape, resize=MyResizeMethod, preprocess=MyPreprocess)
 
 
 # -----------------------------------------------------------
@@ -79,12 +62,12 @@ valid_set.load_data()
 # -----------------------------------------------------------
 
 def main():
-    os.makedirs(os.path.join(dataset_dir, "train"), exist_ok=True)
-    os.makedirs(os.path.join(dataset_dir, "test"), exist_ok=True)
-    os.makedirs(os.path.join(dataset_dir, "validation"), exist_ok=True)
+    os.makedirs(os.path.join(root_dataset_dir, "train"), exist_ok=True)
+    os.makedirs(os.path.join(root_dataset_dir, "test"), exist_ok=True)
+    os.makedirs(os.path.join(root_dataset_dir, "validation"), exist_ok=True)
 
     lr_schedule = MyLRSchedule(initial_learning_rate=1e-4,
-                               decay_steps=200000, 
+                               decay_steps=100000, 
                                decay_rate=0.5)
     optimizer = Adam(learning_rate=lr_schedule, beta_1=0.9, beta_2=0.999, epsilon=1e-8)
 
